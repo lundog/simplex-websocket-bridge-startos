@@ -135,7 +135,12 @@ export async function withBotSession<R>(
           clearTimeout(p.timer)
           p.resolve(env)
         }
-        // Otherwise: unsolicited event — discarded.
+        // Otherwise: unsolicited event from the bot (incoming chat,
+        // contact update, etc.) — discarded. Actions are request/response
+        // and don't subscribe to events. If we ever want push-event
+        // support (e.g. a long-lived listener that reacts to incoming
+        // chats), it would need a separate persistent connection and an
+        // event handler — not a change to this helper.
       }
     })
 
