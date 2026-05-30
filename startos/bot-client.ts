@@ -19,7 +19,8 @@ import { port } from './utils'
  * https://github.com/simplex-chat/simplex-chat/blob/stable/bots/README.md#sending-commands
  */
 
-const REQ_TIMEOUT_MS = 15_000
+const HANDSHAKE_TIMEOUT_MS = 10_000
+const REQ_TIMEOUT_MS = 30_000
 
 export type Envelope = {
   corrId?: string
@@ -56,7 +57,7 @@ export async function withBotSession<R>(
   const url = `ws://${ip}:${port}/`
 
   return new Promise<R>((resolve, reject) => {
-    const ws = new WebSocket(url, { handshakeTimeout: 5_000 })
+    const ws = new WebSocket(url, { handshakeTimeout: HANDSHAKE_TIMEOUT_MS })
     let resolved = false
     let pending: {
       corrId: string
