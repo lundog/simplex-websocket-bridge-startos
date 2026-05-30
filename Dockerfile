@@ -27,7 +27,7 @@ RUN case "$TARGETARCH" in \
   chmod +x /usr/local/bin/simplex-chat
 
 # websocat: pinned binary + SHA-256 per architecture.
-# When bumping SIMPLEX_VERSION, refresh hashes from the upstream release page:
+# When bumping WEBSOCAT_VERSION, refresh hashes from the upstream release page:
 # https://github.com/vi/websocat/releases/tag/v1.14.1
 ARG WEBSOCAT_VERSION=v1.14.1
 ARG WEBSOCAT_SHA256_X86_64=66f8dd3a0394761556339117f8bb5123bddefd44e087af2a72ec22b0bd08d514
