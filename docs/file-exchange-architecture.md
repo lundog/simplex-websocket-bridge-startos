@@ -27,6 +27,8 @@ Why this is better:
 
 What stays: **websocat**. Cross-package WS traffic still cannot reach simplex-chat's localhost-only bind, so the existing 0.0.0.0:5225 → 127.0.0.1:5226 bridge remains.
 
+**Container packaging (orthogonal to the file-exchange design):** the simplex-chat container image has been split into its own repo, `simplex-chat-docker`, and published to Docker Hub as `lundog/simplex-chat`. `simplex-chat-startos` now consumes that image via `dockerTag` rather than building it locally (§4). This keeps Docker concerns out of the StartOS package but does not change the contract below.
+
 ---
 
 ## 3. The File Exchange Contract (consumer-agnostic)
@@ -35,29 +37,44 @@ simplex-chat-startos publishes two things any consumer can use:
 
 **1. WebSocket control interface** (existing): the `ws` service interface on port 5225, used to drive the bot.
 
-**2. A well-known volume layout** on the `main` volume: the `simplex` subpath is mounted at `/simplex` in the simplex-chat container as a **single mount**, containing three plain subdirectories:
+**2. A well-known volume layout** on the `main` volume: the `.simplex/media` subpath is mounted at `/simplex` in the simplex-chat container as a **single mount**, containing three plain subdirectories:
 
 | Volume subpath | Container path | Access for consumers | Purpose |
 |---|---|---|---|
-| `simplex/inbound` | `/simplex/inbound` | read-only | Received files (`--files-folder`) |
-| `simplex/tmp` | `/simplex/tmp` | read-only (optional) | In-progress transfers (`--temp-folder`) |
-| `simplex/outbound` | `/simplex/outbound` | read-write | Consumer-written files for outbound sends |
+| `.simplex/media/inbound` | `/simplex/inbound` | read-only | Received files (`--files-folder`) |
+| `.simplex/media/tmp` | `/simplex/tmp` | read-only (optional) | In-progress transfers (`--temp-folder`) |
+| `.simplex/media/outbound` | `/simplex/outbound` | read-write | Consumer-written files for outbound sends |
+
+The tree lives under the bot's profile dir (`.simplex/media`) rather than a separate top-level `simplex/` dir, so everything SimpleX-related sits under `.simplex/`. Consumers still mount only the `media/*` subpaths — never `.simplex/` itself, which holds the profile database and keys.
 
 Directional naming is from the consumer's perspective and matches OpenClaw's own `media/inbound` convention: `inbound` is what the bot received, `outbound` is what the consumer wants sent.
 
 **Why a single mount on the simplex side:** simplex-chat moves a completed download from the temp folder to the files folder with an atomic `rename(2)`. If `tmp` and `inbound` are separate bind mounts, the rename crosses filesystem boundaries and fails with `EXDEV` ("Invalid cross-device link"), leaving a zero-byte file in `inbound` and the decrypted payload stranded in `tmp`. They must be sibling directories within one mount. Consumers are unaffected and may mount `simplex/inbound` and `simplex/outbound` individually — nothing renames across those.
 
-**Path guarantee:** any consumer that mounts these subpaths at the *same mountpoints* (`/simplex/inbound`, `/simplex/outbound`, …) can use file paths from WS messages verbatim, and can pass `/simplex/outbound/...` paths in send commands verbatim. No path translation anywhere.
+**Path guarantee:** any consumer that mounts these subpaths at the *same mountpoints* (`/simplex/inbound`, `/simplex/outbound`, …) can pass `/simplex/outbound/...` paths in send commands verbatim. This verbatim match is strictly required only for **outbound**: that path string travels over the WS to the bot and is resolved inside the bot's container, so it must be valid there. **Inbound** is looser — the WS API reports only a filename (see §6), which the consumer resolves against its own `inboundDir`; the two sides need only share the same host directory, not identical mountpoints. Mounting inbound at `/simplex/inbound` on both sides is the simplest way to satisfy that and keeps the two directional cases symmetric.
 
 The neutral `/simplex` prefix (rather than `/data/...`) exists so consumers can mount at identical paths without colliding with their own `/data` volume.
 
-Consumers should **not** mount the whole `main` volume — it contains the bot's profile database and keys. Mount only the subpaths above.
+Consumers should **not** mount the whole `main` volume (or `.simplex/`) — it contains the bot's profile database and keys. Mount only the `.simplex/media/*` subpaths above.
 
 ---
 
 ## 4. Changes: `simplex-chat-startos` (this repo)
 
-No new processes, no Dockerfile changes — only mounts and flags.
+The container image (Dockerfile, `entrypoint.sh`, the two-child supervisor, the contract-dir creation, and the `--files-folder`/`--temp-folder` flags) now lives in the standalone **`simplex-chat-docker`** repo (`github.com/lundog/simplex-chat-docker`) and is published to Docker Hub as `lundog/simplex-chat`. This repo no longer builds an image — it consumes the published one. So the changes here are only the manifest image source and the volume mount.
+
+`startos/manifest/index.ts` — consume the published image via `dockerTag` instead of building locally. Bump the tag deliberately when the upstream SimpleX version changes:
+
+```typescript
+images: {
+  simplex: {
+    source: { dockerTag: 'lundog/simplex-chat:6.5.4' },
+    arch: ['x86_64', 'aarch64'],
+  },
+},
+```
+
+(The published image is multi-arch — amd64 + arm64 — so a single tag resolves per StartOS arch. The image's `ENTRYPOINT` is the supervisor script, which `main.ts` invokes via `sdk.useEntrypoint()`.)
 
 `startos/utils.ts` — add the contract mount alongside the existing `/data` mount (a single mount; see §3 for why the subdirectories must not be separate mounts):
 
@@ -71,29 +88,15 @@ export const mainMounts = sdk.Mounts.of()
   })
   .mountVolume({
     volumeId: 'main',
-    subpath: 'simplex',
+    subpath: '.simplex/media',
     mountpoint: '/simplex',
     readonly: false,
   })
 ```
 
-(The subpath lives on the `main` volume, so received and outbound files persist and are included in StartOS backups. `/data/simplex/inbound` and `/simplex/inbound` are the same data; the `/simplex` prefix is the published contract.)
+(The subpath lives on the `main` volume, so received and outbound files persist and are included in StartOS backups. `/data/.simplex/media/inbound` and `/simplex/inbound` are the same data; the `/simplex` prefix is the published contract.)
 
-`entrypoint.sh` — create the contract directories and point simplex-chat at them:
-
-```bash
-mkdir -p /simplex/inbound /simplex/tmp /simplex/outbound
-
-/usr/local/bin/simplex-chat \
-  -p 5226 \
-  --create-bot-display-name "SimpleX Bot" \
-  --create-bot-allow-files \
-  --files-folder /simplex/inbound \
-  --temp-folder /simplex/tmp \
-  &
-```
-
-Everything else in `entrypoint.sh` (the two-child supervisor, the 5226 readiness wait, websocat) is unchanged.
+The contract directories (`inbound`/`tmp`/`outbound`) are created by the image's entrypoint (in `simplex-chat-docker`), which also passes `--files-folder /simplex/inbound --temp-folder /simplex/tmp`. Nothing to do here beyond the mount.
 
 `startos/main.ts` — add a standalone health check so dependents have a stable health check ID to reference in their `kind: 'running'` dependency requirement. This is part of the contract, not optional:
 
@@ -113,7 +116,7 @@ Everything else in `entrypoint.sh` (the two-child supervisor, the 5226 readiness
 
 `README.md` — document the contract (§3), with OpenClaw noted as an example consumer.
 
-Note: adding `--files-folder` changes where received files land. Files received before this change stay in the profile's default location; only new transfers use the contract paths.
+Note: the `--files-folder` location is `/simplex/inbound` (host `.simplex/media/inbound`). Files received before this contract existed stay in the profile's default location; only new transfers use the contract paths.
 
 ---
 
@@ -162,14 +165,14 @@ if (simplexEnabled) {
     .mountDependency({
       dependencyId: 'simplex-chat',
       volumeId: 'main',
-      subpath: 'simplex/inbound',
+      subpath: '.simplex/media/inbound',
       mountpoint: '/simplex/inbound',
       readonly: true,
     })
     .mountDependency({
       dependencyId: 'simplex-chat',
       volumeId: 'main',
-      subpath: 'simplex/outbound',
+      subpath: '.simplex/media/outbound',
       mountpoint: '/simplex/outbound',
       readonly: false,
     })
@@ -254,18 +257,23 @@ If `files.outboundDir` is unset, the plugin behaves exactly as before (single-fi
 
 ## 8. Implementation Checklist
 
+`simplex-chat-docker` (the standalone image repo):
+
+- `Dockerfile` + `entrypoint.sh` — pinned simplex-chat/websocat, two-child supervisor, `mkdir -p` the contract dirs, `--files-folder /simplex/inbound --temp-folder /simplex/tmp`
+- Published to Docker Hub as `lundog/simplex-chat` (multi-arch)
+
 `simplex-chat-startos`:
 
-- `startos/utils.ts` — add single `simplex` subpath mount at `/simplex`
-- `entrypoint.sh` — `mkdir -p` the contract dirs; add `--files-folder /simplex/inbound --temp-folder /simplex/tmp`
+- `startos/manifest/index.ts` — consume `dockerTag: 'lundog/simplex-chat:6.5.4'` (no local `dockerBuild`); Dockerfile/entrypoint removed
+- `startos/utils.ts` — add single `.simplex/media` subpath mount at `/simplex`
 - `startos/main.ts` — `websocket` standalone health check for dependents to reference
 - `README.md` — document the file exchange contract
 
 `openclaw-startos`:
 
 - `startos/manifest/index.ts` — optional `simplex-chat` dependency
-- `startos/dependencies.ts` — conditional `kind: 'running'` requirement referencing `websocket`
-- `startos/main.ts` — conditional `mountDependency` mounts (inbound ro, outbound rw)
+- `startos/dependencies.ts` / `startos/simplex.ts` — conditional `kind: 'running'` requirement referencing `websocket`
+- `startos/simplex.ts` — conditional `mountDependency` mounts (`.simplex/media/inbound` ro, `.simplex/media/outbound` rw)
 - Channel enable toggle wired to config; wsUrl resolution from dependency interface
 
 `openclaw-simplex` plugin:
@@ -289,6 +297,8 @@ If `files.outboundDir` is unset, the plugin behaves exactly as before (single-fi
 
 ---
 
-*Document version: 2.2*  
+*Document version: 2.3*  
 *Author: Lundog & Goose 🪿; revised by Claude*  
-*Date: 2026-06-11*
+*Date: 2026-06-14*
+
+*Changelog: v2.3 — file-exchange tree relocated from the volume's `simplex` subpath to `.simplex/media`; container image split into the standalone `simplex-chat-docker` repo and consumed via `dockerTag`; clarified that the verbatim-path guarantee is strictly required only for outbound.*

@@ -42,6 +42,7 @@ const v020 = VersionInfo.of<'0.2.0:0'>({
     'Features:',
     '- Shared volume file exchange — enables file sending and receiving via /simplex/outbound and /simplex/inbound folders.',
     '- Updates upstream simplex-chat to v6.5.4.',
+    '- The container image is now the standalone, multi-arch lundog/simplex-chat image, keeping Docker packaging separate from the StartOS package.',
   ].join('\n'),
   migrations: {},
 })
