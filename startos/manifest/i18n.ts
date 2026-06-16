@@ -1,9 +1,9 @@
-export const short = 'SimpleX Chat WebSocket for StartOS'
+export const short = 'A WebSocket gateway to the SimpleX messaging network'
+
 export const long =
-  'Runs the SimpleX Chat terminal client as a headless WebSocket, enabling programmatic messaging via StartOS.'
+  'SimpleX Gateway runs a headless SimpleX Chat client and exposes the SimpleX network over a local WebSocket API, so your apps, scripts, bots, and other StartOS services can send and receive SimpleX messages and files programmatically. SimpleX is the first messenger with no user identifiers — not even random numbers — and is fully open source, end-to-end encrypted, and metadata-resistant by design.'
 
 export const installAlert =
-  'Welcome to SimpleX Chat. Once the service is running, you have two ways to give peers a way to reach the bot:\n\n' +
-  '- Connect your own agent to the bot programmatically — point any WebSocket client at the URL under Interfaces → WebSocket and drive the bot directly.\n\n' +
-  '- Or, run the "Create Invitation" action to generate a one-time invitation link you can hand to a SimpleX client (with QR code).\n\n' +
-  'Either path works on its own; you don\'t need to do both.'
+  'SimpleX Gateway exposes the SimpleX network over a WebSocket API for your own software to drive — there is no human chat interface here (use the SimpleX mobile or desktop apps for that).\n\n' +
+  'To use it: point a WebSocket client at the URL under Interfaces → WebSocket — a bot, an integration like OpenClaw, or your own scripts — and run the "Create Invitation" action to hand a contact a connection link.\n\n' +
+  "The WebSocket has no built-in authentication: anything that can reach the URL StartOS publishes can drive the gateway. Use StartOS's LAN/Tor controls to restrict access."

@@ -10,7 +10,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
   const wsInterface = sdk.createInterface(effects, {
     name: i18n('WebSocket'),
     id: 'ws',
-    description: i18n('WebSocket for SimpleX Chat'),
+    description: i18n('WebSocket for SimpleX Gateway'),
     type: 'api',
     masked: false,
     schemeOverride: { ssl: 'wss', noSsl: 'ws' },

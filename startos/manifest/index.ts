@@ -2,10 +2,10 @@ import { setupManifest } from '@start9labs/start-sdk'
 import { installAlert, long, short } from './i18n'
 
 export const manifest = setupManifest({
-  id: 'simplex-chat',
-  title: 'SimpleX Chat',
+  id: 'simplex-gateway',
+  title: 'SimpleX Gateway',
   license: 'MIT',
-  packageRepo: 'https://github.com/Start9-Community/simplex-chat-startos',
+  packageRepo: 'https://github.com/Start9-Community/simplex-gateway-startos',
   upstreamRepo: 'https://github.com/simplex-chat/simplex-chat',
   marketingUrl: 'https://simplex.chat/',
   donationUrl: 'https://github.com/simplex-chat/simplex-chat#help-us-with-donations',
@@ -17,10 +17,10 @@ export const manifest = setupManifest({
     // Bump this tag deliberately when the upstream SimpleX version changes.
     simplex: {
       source: {
-        dockerTag: 'lundog/simplex-chat:6.5.4'
+        dockerTag: 'lundog/simplex-chat:6.5.4',
       },
-      arch: ['x86_64', 'aarch64']
-    }
+      arch: ['x86_64', 'aarch64'],
+    },
   },
   alerts: {
     install: installAlert

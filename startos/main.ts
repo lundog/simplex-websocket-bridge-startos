@@ -3,7 +3,7 @@ import { port, mainMounts } from './utils'
 import { i18n } from './i18n'
 
 export const main = sdk.setupMain(async ({ effects }) => {
-  console.info(i18n('Starting SimpleX Chat!'))
+  console.info(i18n('Starting SimpleX Gateway!'))
 
   const subcontainer = await sdk.SubContainer.of(
     effects,
@@ -30,7 +30,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     })
     // Standalone health check with a stable ID ('websocket') that dependent
     // packages can reference in a `kind: 'running'` dependency requirement.
-    // Part of the file exchange contract (docs/file-exchange-architecture.md §4).
+    // Part of the file exchange contract (see README).
     .addHealthCheck('websocket', {
       ready: {
         display: i18n('WebSocket'),
