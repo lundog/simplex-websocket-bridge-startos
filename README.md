@@ -45,28 +45,27 @@ The image entrypoint starts `simplex-chat` in headless server/bot mode on a loca
 
 ## Volume and Data Layout
 
-| Volume | Mount Point | Purpose                                                              |
-| ------ | ----------- | ------------------------------------------------------------------- |
-| `main` | `/data`     | HOME — the `.simplex` profile database, plus `store.json` (API keys) |
-| `main` | `/simplex`  | The `.simplex/media` subtree, re-mounted for the file-exchange contract |
+| Volume | Mount Point        | Purpose                                                                       |
+| ------ | ------------------ | ----------------------------------------------------------------------------- |
+| `main` | `/data`            | HOME — the `.simplex` profile database and file dirs, plus `store.json` (keys) |
+| `main` | `/tmp/simplex-outbound`| The `.simplex/outbound` subpath, re-mounted at a neutral path for outbound sends |
 
-The SimpleX client's own profile (identity, contacts, chat history) is the source of truth for chat state; there is no separate package-level chat config. A small `store.json` at the volume root holds the bridge's API keys.
+The SimpleX client's own profile (identity, contacts, chat history) is the source of truth for chat state; there is no separate package-level chat config. A small `store.json` at the volume root holds the bridge's API keys. All SimpleX file dirs live under `/data/.simplex` — `files` (received, `--files-folder`), `tmp` (`--temp-folder`), and `outbound` (consumer-written) — as siblings on one filesystem, so simplex-chat's atomic `tmp` → `files` rename can't fail with `EXDEV`.
 
 ### File exchange contract (for consumer packages)
 
-The Websocket carries only a small inline preview for image/video messages — actual file bytes (documents, voice, full-resolution media) live on disk. So other StartOS packages exchange files with the bridge by mounting subpaths of this package's `main` volume via dependency mounts (`mountDependency`), declared as an **optional** dependency so it stays opt-in. The volume's `.simplex/media` subtree is published at a neutral `/simplex` prefix as a **single mount** containing:
+The Websocket carries only a small inline preview for image/video messages — actual file bytes (documents, voice, full-resolution media) live on disk. So other StartOS packages exchange files with the bridge by mounting subpaths of this package's `main` volume via dependency mounts (`mountDependency`), declared as an **optional** dependency so it stays opt-in. The two directions are handled differently:
 
-| Volume subpath           | Container path     | Access for consumers | Purpose                                       |
-| ------------------------ | ------------------ | -------------------- | --------------------------------------------- |
-| `.simplex/media/inbound` | `/simplex/inbound` | read-only            | Files received by the bridge (`--files-folder`) |
-| `.simplex/media/tmp`     | `/simplex/tmp`     | read-only (optional) | In-progress transfers (`--temp-folder`)       |
-| `.simplex/media/outbound`| `/simplex/outbound`| read-write           | Consumer-written files for the bridge to send  |
+| Direction | Volume subpath | Consumer mounts at | Access | Purpose |
+| --------- | -------------- | ------------------ | ------ | ------- |
+| Inbound | `.simplex/files` | *any path* (its own choice) | read-only | Files received by the bridge (`--files-folder`) |
+| Outbound | `.simplex/outbound` | `/tmp/simplex-outbound` (verbatim) | read-write | Consumer-written files for the bridge to send |
 
-**Why a single mount:** `simplex-chat` finishes a download with an atomic `rename(2)` from `tmp` into `inbound`. Separate bind mounts would make that rename cross filesystems and fail with `EXDEV`, stranding the payload — so on the bridge side they must be siblings within one mount. Consumers are unaffected and may mount `inbound` and `outbound` individually.
+**Inbound** is loose: the Websocket API reports a received file by *name only*, which the consumer resolves against its own view of the `files` dir — so the two sides only need to share that one host directory; the mountpoint can be anything the consumer likes.
 
-**Paths:** a consumer that mounts these subpaths at the *same mountpoints* can use the paths verbatim. This is strictly required only for **outbound** — that path travels over the Websocket and is resolved inside the bridge's container, so it must be valid there. **Inbound** is looser: the Websocket API reports only a filename, which the consumer resolves against its own inbound directory, so the two sides need only share the same host directory. The neutral `/simplex` prefix (rather than `/data/...`) lets consumers mount at identical paths without colliding with their own `/data` volume.
+**Outbound** requires a matching path: on send the consumer passes a file path that simplex-chat resolves inside *this* container, so it must be valid here. The bridge re-mounts the `.simplex/outbound` subpath at a neutral `/tmp/simplex-outbound`; a consumer mounting the same subpath at `/tmp/simplex-outbound` can then pass `/tmp/simplex-outbound/...` paths verbatim, with no `/data` collision (the neutral prefix avoids clashing with the consumer's own `/data` volume). This is the same neutral path the standalone Docker image documents, so a consumer's outbound folder is identical in both deployments. `outbound` is not renamed across filesystems, so it needs no co-location with `tmp`.
 
-**Security:** consumers mount only the `media/*` subpaths — never the whole `main` volume or `.simplex/` itself, which hold the SimpleX profile database and keys. `inbound` is read-only so consumers can't alter received files; write access is limited to `outbound`.
+**Security:** consumers mount only the `.simplex/files` and `.simplex/outbound` subpaths — never the whole `main` volume, `.simplex/` itself, or the profile database and keys it holds. `files` is read-only so consumers can't alter received files; write access is limited to `outbound`.
 
 ---
 
@@ -168,8 +167,8 @@ ports:
   ws: 5225
 auth: bearer token (Authorization: Bearer <token>); same-box dependents bypass via container bridge IP
 file_exchange:
-  inbound: /simplex/inbound (read-only for consumers)
-  outbound: /simplex/outbound (read-write for consumers)
+  inbound: mount subpath .simplex/files read-only at any path; WS reports file name only
+  outbound: mount subpath .simplex/outbound read-write at /tmp/simplex-outbound (pass paths verbatim)
 health_checks:
   - websocket
 dependencies: none

@@ -3,24 +3,27 @@ import { sdk } from './sdk'
 export const port = 5225
 
 /**
- * The `main` volume is mounted wholly at /data (HOME, profile database).
+ * The `main` volume is mounted wholly at /data (HOME). Everything SimpleX lives
+ * under /data/.simplex: the profile database and `store.json`, plus the image's
+ * file dirs — `files` (received, `--files-folder`), `tmp` (`--temp-folder`), and
+ * `outbound` (consumer-written, for the bridge to send). They are all siblings
+ * on one filesystem, so simplex-chat's atomic tmp->files rename can't hit EXDEV.
  *
- * The file exchange contract (see README) re-mounts
- * the volume's `.simplex/media` subpath at a neutral /simplex prefix so that
- * consumer packages can mount its subdirectories at identical mountpoints
- * and use file paths from WS messages verbatim:
+ * The file exchange contract (see README) is asymmetric:
  *
- *   /simplex/inbound   (received files, --files-folder)
- *   /simplex/tmp       (in-progress transfers, --temp-folder)
- *   /simplex/outbound  (consumer-written files for outbound sends)
- *
- * The tree lives under the bot's profile dir (.simplex/media) rather than a
- * separate top-level dir, so everything SimpleX-related sits under .simplex/.
- *
- * This must be a SINGLE mount (not one mount per subdirectory): simplex-chat
- * moves completed downloads from the temp folder to the files folder with an
- * atomic rename, which fails with EXDEV ("Invalid cross-device link") if the
- * two directories are separate bind mounts.
+ *   inbound  — the WS reports received files by name only, which a consumer
+ *              resolves against its own view of `.simplex/files`, so no shared
+ *              path is required; the consumer mounts that subpath read-only.
+ *   outbound — on send the consumer passes a path the bridge resolves *here*, so
+ *              it must be valid in this container. We expose only the
+ *              `.simplex/outbound` subpath at a neutral `/tmp/simplex-outbound`,
+ *              so a consumer mounting the same path can pass
+ *              `/tmp/simplex-outbound/...` verbatim without colliding with its
+ *              own /data. The same neutral path is used by the standalone Docker
+ *              image's docs, so a consumer's `outboundFolder` is identical in
+ *              both deployments. The physical bytes still live at the
+ *              `.simplex/outbound` subpath (backed up); `/tmp` is only the
+ *              shared mountpoint, and suits transient staged sends.
  */
 export const mainMounts = sdk.Mounts.of()
   .mountVolume({
@@ -31,7 +34,7 @@ export const mainMounts = sdk.Mounts.of()
   })
   .mountVolume({
     volumeId: 'main',
-    subpath: '.simplex/media',
-    mountpoint: '/simplex',
+    subpath: '.simplex/outbound',
+    mountpoint: '/tmp/simplex-outbound',
     readonly: false,
   })

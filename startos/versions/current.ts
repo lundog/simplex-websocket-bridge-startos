@@ -1,50 +1,49 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '0.2.0:0',
+  version: '0.3.0:0',
   releaseNotes: {
     en_US: [
-      'SimpleX Websocket Bridge runs SimpleX Chat headless and exposes the SimpleX network over a token-authenticated Websocket API, so bots, AI agents, scripts, and other StartOS services can send and receive SimpleX messages and files programmatically.',
+      'Bundles simplex-chat v6.5.5 and improves connection reliability and the file-exchange contract.',
       '',
-      '- Outside access is gated by per-client bearer tokens, managed in the API Keys action; same-box services connect directly.',
-      '- Actions to configure the SimpleX profile, create one-time invitation links, and reset the identity.',
-      '- Shared-volume file exchange for consumer packages via /simplex/inbound and /simplex/outbound.',
-      '- Bundles simplex-chat v6.5.4.',
+      '- Bundles simplex-chat v6.5.5 (previously v6.5.4).',
+      '- More reliable connections: large SimpleX events (for example, when a new contact connects) are no longer split into invalid WebSocket frames.',
+      '- File exchange reworked for consumer packages: received files are shared via the .simplex/files subpath (mounted read-only, resolved by name) and outgoing files via a neutral /tmp/simplex-outbound mount. See the README.',
     ].join('\n'),
     es_ES: [
-      'SimpleX Websocket Bridge ejecuta SimpleX Chat sin interfaz y expone la red SimpleX a través de una API Websocket autenticada por token, para que bots, agentes de IA, scripts y otros servicios de StartOS puedan enviar y recibir mensajes y archivos de SimpleX de forma programática.',
+      'Incluye simplex-chat v6.5.5 y mejora la fiabilidad de las conexiones y el contrato de intercambio de archivos.',
       '',
-      '- El acceso externo se protege con tokens bearer por cliente, gestionados en la acción API Keys; los servicios del mismo equipo se conectan directamente.',
-      '- Acciones para configurar el perfil de SimpleX, crear enlaces de invitación de un solo uso y restablecer la identidad.',
-      '- Intercambio de archivos mediante volumen compartido para paquetes consumidores a través de /simplex/inbound y /simplex/outbound.',
-      '- Incluye simplex-chat v6.5.4.',
+      '- Incluye simplex-chat v6.5.5 (antes v6.5.4).',
+      '- Conexiones más fiables: los eventos grandes de SimpleX (por ejemplo, cuando un nuevo contacto se conecta) ya no se dividen en tramas WebSocket no válidas.',
+      '- Intercambio de archivos rediseñado para paquetes consumidores: los archivos recibidos se comparten mediante la subruta .simplex/files (montada en solo lectura, resuelta por nombre) y los archivos salientes mediante un montaje neutral /tmp/simplex-outbound. Consulte el README.',
     ].join('\n'),
     de_DE: [
-      'SimpleX Websocket Bridge betreibt SimpleX Chat im Headless-Modus und stellt das SimpleX-Netzwerk über eine token-authentifizierte Websocket-API bereit, sodass Bots, KI-Agenten, Skripte und andere StartOS-Dienste SimpleX-Nachrichten und -Dateien programmatisch senden und empfangen können.',
+      'Enthält simplex-chat v6.5.5 und verbessert die Verbindungszuverlässigkeit sowie den Dateiaustausch-Vertrag.',
       '',
-      '- Externer Zugriff wird durch clientspezifische Bearer-Token abgesichert, verwaltet in der Aktion „API Keys“; Dienste auf demselben Gerät verbinden sich direkt.',
-      '- Aktionen zum Konfigurieren des SimpleX-Profils, zum Erstellen einmaliger Einladungslinks und zum Zurücksetzen der Identität.',
-      '- Dateiaustausch über ein gemeinsames Volume für konsumierende Pakete via /simplex/inbound und /simplex/outbound.',
-      '- Enthält simplex-chat v6.5.4.',
+      '- Enthält simplex-chat v6.5.5 (zuvor v6.5.4).',
+      '- Zuverlässigere Verbindungen: Große SimpleX-Ereignisse (zum Beispiel, wenn ein neuer Kontakt eine Verbindung herstellt) werden nicht mehr in ungültige WebSocket-Frames aufgeteilt.',
+      '- Dateiaustausch für konsumierende Pakete überarbeitet: Empfangene Dateien werden über den Unterpfad .simplex/files (schreibgeschützt eingebunden, anhand des Namens aufgelöst) und ausgehende Dateien über eine neutrale Einbindung /tmp/simplex-outbound geteilt. Siehe README.',
     ].join('\n'),
     pl_PL: [
-      'SimpleX Websocket Bridge uruchamia SimpleX Chat w trybie bezgłowym i udostępnia sieć SimpleX poprzez uwierzytelniane tokenem API Websocket, dzięki czemu boty, agenci AI, skrypty i inne usługi StartOS mogą programowo wysyłać i odbierać wiadomości oraz pliki SimpleX.',
+      'Zawiera simplex-chat v6.5.5 oraz poprawia niezawodność połączeń i kontrakt wymiany plików.',
       '',
-      '- Dostęp z zewnątrz jest chroniony tokenami bearer dla każdego klienta, zarządzanymi w akcji „API Keys”; usługi na tym samym urządzeniu łączą się bezpośrednio.',
-      '- Akcje do konfiguracji profilu SimpleX, tworzenia jednorazowych linków zaproszeń i resetowania tożsamości.',
-      '- Wymiana plików przez współdzielony wolumin dla pakietów konsumujących poprzez /simplex/inbound i /simplex/outbound.',
-      '- Zawiera simplex-chat v6.5.4.',
+      '- Zawiera simplex-chat v6.5.5 (poprzednio v6.5.4).',
+      '- Bardziej niezawodne połączenia: duże zdarzenia SimpleX (na przykład gdy łączy się nowy kontakt) nie są już dzielone na nieprawidłowe ramki WebSocket.',
+      '- Przebudowano wymianę plików dla pakietów konsumujących: pliki odebrane są udostępniane przez podścieżkę .simplex/files (montowaną tylko do odczytu, rozwiązywaną po nazwie), a pliki wychodzące przez neutralny montaż /tmp/simplex-outbound. Zobacz README.',
     ].join('\n'),
     fr_FR: [
-      'SimpleX Websocket Bridge exécute SimpleX Chat sans interface et expose le réseau SimpleX via une API Websocket authentifiée par jeton, afin que les bots, agents IA, scripts et autres services StartOS puissent envoyer et recevoir des messages et fichiers SimpleX de façon programmatique.',
+      "Inclut simplex-chat v6.5.5 et améliore la fiabilité des connexions ainsi que le contrat d'échange de fichiers.",
       '',
-      "- L'accès externe est protégé par des jetons bearer propres à chaque client, gérés dans l'action « API Keys » ; les services du même appareil se connectent directement.",
-      "- Des actions pour configurer le profil SimpleX, créer des liens d'invitation à usage unique et réinitialiser l'identité.",
-      '- Échange de fichiers via un volume partagé pour les paquets consommateurs à travers /simplex/inbound et /simplex/outbound.',
-      '- Inclut simplex-chat v6.5.4.',
+      '- Inclut simplex-chat v6.5.5 (auparavant v6.5.4).',
+      "- Connexions plus fiables : les événements SimpleX volumineux (par exemple lorsqu'un nouveau contact se connecte) ne sont plus fractionnés en trames WebSocket invalides.",
+      '- Échange de fichiers repensé pour les paquets consommateurs : les fichiers reçus sont partagés via le sous-chemin .simplex/files (monté en lecture seule, résolu par nom) et les fichiers sortants via un montage neutre /tmp/simplex-outbound. Voir le README.',
     ].join('\n'),
   },
   migrations: {
+    // No data migration: the SimpleX profile DB and API keys keep their paths
+    // under .simplex/. Received files move from .simplex/media/inbound to
+    // .simplex/files (the new image default); any files left in the old
+    // .simplex/media tree are orphaned but harmless and can be removed manually.
     up: async ({ effects }) => {},
     down: IMPOSSIBLE,
   },
