@@ -13,20 +13,11 @@ const dict = {
   'Danger Zone': 6,
 
   // configure action
-  'Configure Bot Profile': 7,
-  'Edit the bot profile — display name, picture, and file sharing.': 8,
   'Display Name': 9,
-  'The display name peers see when they connect to your bot.': 10,
   'Profile Picture': 11,
-  'Profile picture as a base64 data URL (e.g. "data:image/jpg;base64,..."). Leave empty for no picture. Tip: small images (< 64KB) render best in SimpleX clients.': 12,
-  'Could Not Update Profile': 13,
-  'No active user — the bot may not be fully started yet.': 14,
-  'Bot Refused Update': 15,
-  'Allow files & media': 16,
-  'When on, contacts can send files and media to the bridge, and the bridge can send them. When off, file and media transfers are disabled.': 17,
 
   // create-invitation action
-  'Create Invitation': 18,
+  'Create SimpleX Invitation': 18,
   'Create a one-time SimpleX invitation link. Each invocation produces a fresh link that can be used by exactly one new contact — share it through any channel and have them paste it into their SimpleX client.': 19,
   'One-Time Invitation Link': 20,
   'Send this link to one new contact. Each link can be redeemed by exactly one peer — run this action again to invite another person.': 21,
@@ -37,13 +28,13 @@ const dict = {
   'Could Not Reach Bot': 26,
   'No Invitation Link Returned': 27,
 
-  // reset-profile action
-  'Reset Profile': 28,
-  'Permanently delete the bot identity, all chats, and all contacts. A fresh profile will be created the next time the service starts.': 29,
-  'This will permanently delete the bot identity, all chats, and all contacts. Anyone who has your current connection link will no longer be able to reach the bot. The fresh profile will revert to display name "SimpleX Bot" with no profile picture — you can change those again in the Configure action once the service is back up. This cannot be undone.': 30,
+  // reset-client action
+  'Reset Client': 28,
+  'Permanently delete the SimpleX identity, all chats, and all contacts. A fresh identity is created the next time the service starts.': 29,
+  'This permanently deletes the SimpleX identity, all chats, and all contacts. Anyone who has your current connection link will no longer be able to reach this client — they must reconnect with a new invitation or address. The fresh identity reverts to display name "SimpleX Bot" with no profile picture; you can set those again in the Configure Client action once the service is back up. If this client is used with OpenClaw, note that SimpleX reuses low, sequential contact ids after a reset: a brand-new contact can take a former id (such as 4) and OpenClaw would treat them as the old contact, inheriting their session history, pairing approval, and allowlist membership. Purge the matching OpenClaw state for the channel before letting anyone reconnect. This cannot be undone.': 30,
   'Reset Failed': 31,
-  'Profile Reset': 32,
-  'The bot identity and all chat data have been deleted. Start the service to generate a fresh profile.': 33,
+  'Client Reset': 32,
+  'The SimpleX identity, all contacts, and chat history have been deleted; your API keys are kept. Start the service to create a fresh identity. Every previous contact must reconnect with a new invitation or address — if this client is used with OpenClaw, purge the channel state before they do.': 33,
 
   // api-keys action
   'API Keys': 34,
@@ -55,6 +46,65 @@ const dict = {
   'Leave blank when adding a key and one is generated for you. Keep it secret.': 40,
   'API Keys Saved': 41,
   'Outside clients authenticate with the header: Authorization: Bearer <token>': 42,
+
+  // configure SimpleX client action
+  'SMP relay URIs': 43,
+  'One SMP server address per line, e.g. smp://<fingerprint>@host. These REPLACE the public preset servers.': 44,
+  'XFTP relay URIs': 45,
+  'One XFTP server address per line, e.g. xftp://<fingerprint>@host. These REPLACE the public preset servers.': 46,
+  'The name peers see when they connect to your client.': 47,
+  'Full Name': 48,
+  'Optional longer name shown alongside the display name.': 49,
+  'Set a profile picture from an image URL (http/https), a data URL, or base64. Any size — it is cropped to a square and shrunk to fit the SimpleX avatar size limit. Leave empty to remove the picture.': 50,
+  'Peer Type': 51,
+  'Bot marks the profile as a SimpleX bot so peer apps show command menus. Human presents as a regular user. Cosmetic — file and message transfer work either way.': 52,
+  Bot: 53,
+  Human: 54,
+  'Auto-Accept Contact Requests': 55,
+  'Automatically accept incoming contact requests to the client address.': 56,
+  'Business Mode': 57,
+  'Present the address as a business address (each contact becomes a group with the business, enabling multiple agents).': 58,
+  'Welcome Message': 59,
+  'Optional auto-reply sent to each new contact when they connect.': 60,
+  'Message Relays (SMP/XFTP)': 61,
+  'Which servers relay your messages and files. Applied immediately (no restart) and only to NEW connections — existing contacts and your current address keep using the server they were created on. Use Reset SimpleX Address to move your address onto the new relays.': 62,
+  'SimpleX defaults (public)': 63,
+  'My self-hosted SimpleX Server': 64,
+  Custom: 65,
+  'Cleanup Received Files After (days)': 66,
+  'Delete received files older than this many days. Leave empty to keep files forever.': 67,
+  days: 68,
+  never: 69,
+  'Configure Client': 70,
+  'Set the client display name, profile, contact-request handling, message relays, and file retention. Run this before starting the service for the first time.': 71,
+  'Saved, But Live Update Failed': 74,
+  'Settings were saved, but applying them to the running client failed: ': 75,
+
+  // main.ts sync
+  'SimpleX client settings synced': 78,
+  'Could not sync SimpleX client settings: ': 79,
+
+  // avatar processing (configure action)
+  'Could Not Process Image': 80,
+  'The profile picture could not be processed: ': 81,
+
+  // view-address / reset-address actions
+  'View SimpleX Address': 83,
+  'Show the long-lived SimpleX address for this client — a reusable connection link. Unlike a one-time invitation, the same address works for any number of contacts.': 84,
+  'SimpleX Address': 85,
+  'Share this address so others can request to connect. It is reusable — the same link works for any number of contacts. To accept requests automatically, enable Auto-Accept Contact Requests in Configure Client.': 86,
+  'No Address Returned': 87,
+  'Reset SimpleX Address': 88,
+  'Replace the long-lived SimpleX address for this client with a new one — useful after changing message relays, so the address is hosted on the new servers. Existing contacts are unaffected; only the old address link stops working.': 89,
+  'This replaces the SimpleX address for this client with a new one. The old address link will no longer connect anyone to the client, so update anywhere you have shared it. Existing contacts are not affected — they can still chat with the client as before.': 90,
+  'Address Reset': 91,
+  'A new SimpleX address has been created and is shown below. The previous address link no longer works; existing contacts are unaffected.': 92,
+
+  // configure client — profile management mode
+  'SimpleX Profile': 93,
+  'Choose whether StartOS manages the client profile and address, or leaves them to your own application. When your application manages them, StartOS makes no changes to the running client over the Websocket — it only applies message relays and file cleanup at startup.': 94,
+  'Managed by StartOS': 95,
+  'Managed by my application': 96,
 } as const
 
 /**

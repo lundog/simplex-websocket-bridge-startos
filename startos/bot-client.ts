@@ -44,6 +44,39 @@ export async function callBot(
 }
 
 /**
+ * Poll until the bot is actually reachable and its chat controller answers.
+ *
+ * On a fresh start the container brings up simplex-chat, then websocat binds
+ * the external port a moment later, so an immediate connect races and fails
+ * with ECONNREFUSED. StartOS `requires` gating orders daemon *launch*, not
+ * socket readiness, so we do our own wait loop (mirroring entrypoint.sh's
+ * /dev/tcp probe): retry `/user` until it returns an active user, then return.
+ * Throws if the bot isn't ready within `timeoutMs`.
+ */
+export async function waitForBotReady(
+  effects: T.Effects,
+  {
+    timeoutMs = 90_000,
+    intervalMs = 1_000,
+  }: { timeoutMs?: number; intervalMs?: number } = {},
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  let lastError = 'unknown error'
+  for (;;) {
+    try {
+      const env = await callBot(effects, '/user')
+      if (env.resp?.type === 'activeUser') return
+      lastError = `unexpected response: ${env.resp?.type}`
+    } catch (err) {
+      lastError = (err as Error).message
+    }
+    if (Date.now() + intervalMs >= deadline) break
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+  throw new Error(`Bot not ready after ${timeoutMs}ms (last: ${lastError})`)
+}
+
+/**
  * Open a single connection to the bot and yield a `send` function that
  * issues commands sequentially. The connection is closed when `fn` resolves
  * or rejects. Use this to batch a few commands (e.g. /user followed by
