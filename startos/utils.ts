@@ -3,35 +3,30 @@ import { sdk } from './sdk'
 export const port = 5225
 
 /**
- * The `main` volume is mounted wholly at /data (HOME, profile database).
+ * A single mount: the `main` volume at /data (HOME). Everything SimpleX lives
+ * under /data/.simplex — the profile database and `store.json`, plus the image's
+ * file dirs `files` (received, `--files-folder`), `tmp` (`--temp-folder`), and
+ * `outbound` (consumer-written, for the bridge to send). All siblings on one
+ * filesystem, so simplex-chat's atomic tmp->files rename can't hit EXDEV. (The
+ * file-exchange paths are pinned via env in serverConfig.ts so the contract is
+ * independent of the image's $HOME-derived defaults.)
  *
- * The file exchange contract (see README) re-mounts
- * the volume's `.simplex/media` subpath at a neutral /simplex prefix so that
- * consumer packages can mount its subdirectories at identical mountpoints
- * and use file paths from WS messages verbatim:
+ * The file exchange contract (see README) needs no second/neutral mount here.
+ * A consumer package mounts the specific subpaths it needs via `mountDependency`
+ * at whatever paths it likes:
  *
- *   /simplex/inbound   (received files, --files-folder)
- *   /simplex/tmp       (in-progress transfers, --temp-folder)
- *   /simplex/outbound  (consumer-written files for outbound sends)
- *
- * The tree lives under the bot's profile dir (.simplex/media) rather than a
- * separate top-level dir, so everything SimpleX-related sits under .simplex/.
- *
- * This must be a SINGLE mount (not one mount per subdirectory): simplex-chat
- * moves completed downloads from the temp folder to the files folder with an
- * atomic rename, which fails with EXDEV ("Invalid cross-device link") if the
- * two directories are separate bind mounts.
+ *   inbound  — mount `.simplex/files` read-only. The WS reports received files
+ *              by name only, so the consumer resolves them against its own path.
+ *   outbound — mount `.simplex/outbound` read-write. On send the consumer passes
+ *              a path the bridge resolves here (`/data/.simplex/outbound/...`);
+ *              the consumer stages into its own mount and rewrites the prefix to
+ *              that container path (the openclaw-simplex plugin does this via
+ *              connection.outboundFolder + outboundFolderOnClient), so no shared
+ *              or verbatim mountpoint is required.
  */
-export const mainMounts = sdk.Mounts.of()
-  .mountVolume({
-    volumeId: 'main',
-    subpath: null,
-    mountpoint: '/data',
-    readonly: false,
-  })
-  .mountVolume({
-    volumeId: 'main',
-    subpath: '.simplex/media',
-    mountpoint: '/simplex',
-    readonly: false,
-  })
+export const mainMounts = sdk.Mounts.of().mountVolume({
+  volumeId: 'main',
+  subpath: null,
+  mountpoint: '/data',
+  readonly: false,
+})

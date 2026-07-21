@@ -1,7 +1,7 @@
-import { T } from '@start9labs/start-sdk'
 import { CR } from '@simplex-chat/types'
 import { sdk } from '../sdk'
 import { withBotSession } from '../bot-client'
+import { connLinkMembers } from '../links'
 import { i18n } from '../i18n'
 
 /**
@@ -22,7 +22,7 @@ import { i18n } from '../i18n'
 export const createInvitation = sdk.Action.withoutInput(
   'create-invitation',
   async () => ({
-    name: i18n('Create Invitation'),
+    name: i18n('Create SimpleX Invitation'),
     description: i18n(
       'Create a one-time SimpleX invitation link. Each invocation produces a fresh link that can be used by exactly one new contact — share it through any channel and have them paste it into their SimpleX client.',
     ),
@@ -62,45 +62,14 @@ export const createInvitation = sdk.Action.withoutInput(
       }
     }
 
-    const inv = invitation.connLinkInvitation
-    const short = inv.connShortLink?.trim()
-    const full = inv.connFullLink?.trim()
-
-    if (!short && !full) {
+    const members = connLinkMembers(invitation.connLinkInvitation)
+    if (members.length === 0) {
       return {
         version: '1',
         title: i18n('No Invitation Link Returned'),
         message: JSON.stringify(invitation).slice(0, 2048),
         result: null,
       }
-    }
-
-    const members: T.ActionResultMember[] = []
-    if (short) {
-      members.push({
-        type: 'single',
-        name: i18n('Short Link (recommended)'),
-        description: i18n(
-          'Use this with modern SimpleX clients. Includes a QR code.',
-        ),
-        value: short,
-        copyable: true,
-        qr: true,
-        masked: false,
-      })
-    }
-    if (full) {
-      members.push({
-        type: 'single',
-        name: i18n('Full Link (older clients)'),
-        description: i18n(
-          'Backup format for older SimpleX clients that do not understand short links.',
-        ),
-        value: full,
-        copyable: true,
-        qr: true,
-        masked: false,
-      })
     }
 
     return {
